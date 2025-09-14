@@ -1,55 +1,47 @@
 import { Given, When, Then } from '@wdio/cucumber-framework';
 import { expect } from '@wdio/globals';
 
-// Common step definitions used across multiple features
-
-Given('I am logged in as a customer', async () => {
-    // Navigate to login page
-    await browser.url('/login');
-    
-    // Enter credentials
-    await $('#email').setValue('customer@example.com');
-    await $('#password').setValue('TestPass123!');
-    
-    // Submit login form
-    await $('button[type="submit"]').click();
-    
-    // Verify logged in
-    await expect(browser).toHaveUrl(/.*dashboard/);
+Given('I am on the Amazon homepage', async () => {
+    await browser.url('https://www.amazon.com/');
 });
 
-Given('I have items in my shopping cart', async () => {
-    // Add sample items to cart
-    await browser.url('/products');
-    
-    // Add first product
-    const firstProduct = await $('.product-card');
-    const addToCartBtn = await firstProduct.$('.add-to-cart');
-    await addToCartBtn.click();
-    
-    // Verify cart has items
-    const cartCount = await $('.cart-count');
-    await expect(cartCount).toHaveText('1');
+When('I search for {string}', async (product: string) => {
+    const searchBox = await $('#twotabsearchtextbox');
+    await searchBox.setValue(product);
+    const searchButton = await $('input[type="submit"]');
+    await searchButton.click();
 });
 
-When('I click {string} button', async (buttonText: string) => {
-    const button = await $(`button*=${buttonText}`);
-    await button.waitForClickable();
-    await button.click();
+When('I add the first product to my cart from the search results', async () => {
+    const firstProductAddToCartButton = await $('(//button[contains(@aria-label, "Add to Cart")])[1]');
+    await firstProductAddToCartButton.click();
 });
 
-When('I enter {string} in the {string} field', async (value: string, fieldName: string) => {
-    const field = await $(`input[name="${fieldName}"], input[placeholder*="${fieldName}"]`);
-    await field.setValue(value);
+When('I try to add the first product to my cart from the search results', async () => {
+    const firstProductAddToCartButton = await $('(//button[contains(@aria-label, "Add to Cart")])[1]');
+    if (await firstProductAddToCartButton.isDisplayed()) {
+        await firstProductAddToCartButton.click();
+    }
 });
 
-Then('I should see {string}', async (text: string) => {
-    const element = await $(`//*[contains(text(), "${text}")]`);
-    await expect(element).toBeDisplayed();
+When('I add the first three products to my cart from the search results', async () => {
+    for (let i = 1; i <= 3; i++) {
+        const productAddToCartButton = await $(`(//button[contains(@aria-label, "Add to Cart")])[${i}]`);
+        await productAddToCartButton.click();
+    }
 });
 
-Then('the {string} should be {string}', async (field: string, expectedValue: string) => {
-    const element = await $(`[data-testid="${field}"]`);
-    const actualValue = await element.getText();
-    await expect(actualValue).toBe(expectedValue);
+Then('the cart should reflect the added item', async () => {
+    const cartCount = await $('.nav-cart-count');
+    await expect(cartCount).toHaveTextContaining('1');
+});
+
+Then('the cart should reflect three added items', async () => {
+    const cartCount = await $('.nav-cart-count');
+    await expect(cartCount).toHaveTextContaining('3');
+});
+
+Then('I should see {string} message', async (message: string) => {
+    const alertMessage = await $('div.alert');
+    await expect(alertMessage).toHaveTextContaining(message);
 });
